@@ -1,7 +1,7 @@
 use std::{fs, path::{Path, PathBuf}, process};
 
 use rustyline::{DefaultEditor, error::ReadlineError};
-use dimension_parser::resize::{ResizeScenario, parse_resize_details};
+use dimension_parser::{resize::{ResizeScenario, parse_resize_details}, unit};
 
 #[derive(Debug)]
 struct State {
@@ -48,7 +48,6 @@ fn parse_dpi(state: &mut State, text: &str) -> Result<String, String> {
     state.dpi = Some(dpi);
     Ok(dpi.to_string())
 }
-
 
 
 fn exit_ok(state: &mut State, text: &str) -> Result<String, String> {
@@ -108,28 +107,53 @@ impl State {
                         noop
                     )
                 },
-                ResizeScenario::PhysicalResize(_) => {
+                ResizeScenario::PhysicalResize(dimensions) => {
                     if self.dpi.is_none() {
                         return (
                             String::from("What dpi value do you want? (300 is ideal)"),
                             parse_dpi
                         )
-                    }
+                    } else {
+                        let dpi = self.dpi.unwrap();                                        
+                        let inches_width = unit::unit_to_inches(&dimensions.unit, dimensions.w);
+                        let inches_height = unit::unit_to_inches(&dimensions.unit, dimensions.h);
+                        let pixels_width = f32::round(inches_width * dpi as f32) as i32;
+                        let pixels_height = f32::round(inches_height * dpi as f32) as i32;
+
+                        return (
+                            format!("Ok. I can resize {image} to {width} x {height} pixels. Do you want me to do this for you?",
+                                image=self.image.as_ref().unwrap().display(),
+                                width=pixels_width,
+                                height=pixels_height
+                            ),
+                            confirm_plan
+                        )                
+                    }                    
+                },
+                ResizeScenario::PixelResize(dimensions) => {
+                    return (
+                        format!("Ok. I can resize {image} to {width} x {height} pixels for you. Do you want me to do this for you?",
+                            image=self.image.as_ref().unwrap().display(),
+                            width=dimensions.w,
+                            height=dimensions.h
+                        ),
+                        confirm_plan
+                    )  
                 },
                 ResizeScenario::FractionalPixels(_) => {
                     return (
                         String::from("You should use whole pixel values for your dimensions or specify a different unit."),
                         reenter_dimensions
                     )
-                },                
-                _ => {}
+                }
+                
             }
+        } else {
+            return (
+                String::from(""),
+                noop
+            )
         }
-        
-        (
-            format!("Ok. I can resize {image:?} to {scenario:?} for you. Do you want me to do this for you?", image=self.image, scenario=self.scenario),
-            confirm_plan
-        )        
     }
 }
 
@@ -174,7 +198,9 @@ fn main() -> rustyline::Result<()> {
                 let result = handler(&mut state, &line);
                 
                 match result {
-                    Ok(r) => println!("{r}"),
+                    Ok(r) => {
+                        if r != "" { println!("{r}") }
+                    }
                     Err(e) => println!("{e}"),
                 }
             },

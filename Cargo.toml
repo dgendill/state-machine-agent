@@ -19,3 +19,6 @@ path = "src/lib.rs"
 [[bin]]
 name = "dimension_parser_cli"
 path = "src/main.rs"
+
+[dev-dependencies]
+float_eq = "1.0.1"

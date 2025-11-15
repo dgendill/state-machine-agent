@@ -30,3 +30,26 @@ impl FromStr for Unit {
         Self::try_from(s)
     }
 }
+
+pub fn unit_to_inches(unit: &Unit, amount: f32) -> f32 {
+    match unit {
+        Unit::Meters => amount / 39.37,
+        Unit::Centimeters => amount / 2.54,
+        Unit::Millimeters => amount / 20.54,
+        Unit::Feet => amount / 12.0,
+        Unit::Inches => amount,
+        Unit::Pixels => panic!("Cannot convert pixels to inches")
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use float_eq::assert_float_eq;
+
+    use super::*;
+
+    #[test]
+    fn test_unit_conversion() {
+        assert_float_eq!(unit_to_inches(&Unit::Centimeters, 10.0), 3.937, abs <= 0.005);        
+    }
+}
