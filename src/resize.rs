@@ -27,8 +27,8 @@ pub struct RawResizeDetails {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ResizeScenario {
-    DecimalResize(DimensionsF32),
-    WholeResize(DimensionsI32),
+    PhysicalResize(DimensionsF32),
+    PixelResize(DimensionsI32),
     ClarifyUnit(RawResizeDetails),
     FractionalPixels(RawResizeDetails)
 }
@@ -53,16 +53,16 @@ impl RawResizeDetails {
             return ResizeScenario::FractionalPixels(self)
         }
         
-        if self.has_decimal() {
-            ResizeScenario::DecimalResize(DimensionsF32 {
-                w: self.raw_width.parse::<f32>().unwrap(),
-                h: self.raw_height.parse::<f32>().unwrap(),
+        if unit == Unit::Pixels {
+            ResizeScenario::PixelResize(DimensionsI32 {
+                w: self.raw_width.parse::<i32>().unwrap(),
+                h: self.raw_height.parse::<i32>().unwrap(),
                 unit
             })
         } else {
-            ResizeScenario::WholeResize(DimensionsI32 {
-                w: self.raw_width.parse::<i32>().unwrap(),
-                h: self.raw_height.parse::<i32>().unwrap(),
+            ResizeScenario::PhysicalResize(DimensionsF32 {
+                w: self.raw_width.parse::<f32>().unwrap(),
+                h: self.raw_height.parse::<f32>().unwrap(),
                 unit
             })
         }    
