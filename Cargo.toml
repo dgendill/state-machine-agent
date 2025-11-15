@@ -1,0 +1,20 @@
+[package]
+name = "dimension_parser"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+regex = "1.12.2"
+rustyline = { version = "17.0.2", features = ["with-file-history"] }
+
+[features]
+default = ["with-file-history"]
+with-file-history = ["rustyline/with-file-history"]
+
+[lib]
+name = "dimension_parser"
+path = "src/lib.rs"
+
+[[bin]]
+name = "dimension_parser_cli"
+path = "src/main.rs"
