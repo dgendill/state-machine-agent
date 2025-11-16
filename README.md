@@ -52,3 +52,15 @@ Ok. I can resize /image.webp to 900 x 801 pixels. Do you want me to do this for 
 Ok. Complete. (simulated)
 {"width":900,"height":801}
 ```
+
+---
+
+# Building
+
+If you want to run this without wasm, just run `cargo run`.
+
+If you want to build the wasm file yourself:
+
+1. Make sure you have the wasm32-wasip2 target installed. `rustup target add wasm32-wasip2`
+2. cargo build --target wasm32-wasip2 --release
+3. Build file will be in `target/wasm32-wasip2/release/dimension_parser_cli.wasm`
