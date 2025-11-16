@@ -1,21 +1,25 @@
-use std::{fs, path::{Path, PathBuf}, process};
+use std::{env, fs, path::PathBuf, process};
 
-use rustyline::{DefaultEditor, error::ReadlineError};
 use dimension_parser::{resize::{ResizeScenario, parse_resize_details}, unit};
+
 
 #[derive(Debug)]
 struct State {
     image: Option<PathBuf>,
     native_image_width: Option<i32>,
     native_image_height: Option<i32>,
-    scenario: Option<ResizeScenario>,
-    is_upscaling: bool,
+    final_width: Option<i32>,
+    final_height: Option<i32>,
+    scenario: Option<ResizeScenario>,    
     dpi: Option<i32>
 }
 
 fn select_image(state: &mut State, text: &str) -> Result<String, String> {
-    if PathBuf::from(text).exists() {
-        let path = PathBuf::from(text);
+    
+    let path = PathBuf::from(text.trim());    
+
+    if path.exists() {
+
         let _img = image::ImageReader::open(&path)
             .map_err(|e| String::from("Could not open file as an image."))?
             .with_guessed_format()
@@ -51,6 +55,7 @@ fn parse_dpi(state: &mut State, text: &str) -> Result<String, String> {
 
 
 fn exit_ok(state: &mut State, text: &str) -> Result<String, String> {
+    println!("{{\"width\":{},\"height\":{}}}", state.final_width.unwrap(), state.final_height.unwrap());
     process::exit(0);
 }
 
@@ -85,7 +90,7 @@ fn noop(state: &mut State, text: &str) -> Result<String, String> {
 }
 
 impl State {
-    fn handle(&self) -> (String, fn (&mut State, text: &str) -> Result<String, String>) {
+    fn handle(&mut self) -> (String, fn (&mut State, text: &str) -> Result<String, String>) {
         if self.image.is_none() {
             return (
                 String::from("What image would you like to resize?"),
@@ -120,6 +125,9 @@ impl State {
                         let pixels_width = f32::round(inches_width * dpi as f32) as i32;
                         let pixels_height = f32::round(inches_height * dpi as f32) as i32;
 
+                        self.final_width = Some(pixels_width);
+                        self.final_height = Some(pixels_height);
+                        
                         return (
                             format!("Ok. I can resize {image} to {width} x {height} pixels. Do you want me to do this for you?",
                                 image=self.image.as_ref().unwrap().display(),
@@ -131,6 +139,9 @@ impl State {
                     }                    
                 },
                 ResizeScenario::PixelResize(dimensions) => {
+                    self.final_width = Some(dimensions.w);
+                    self.final_height = Some(dimensions.h);
+
                     return (
                         format!("Ok. I can resize {image} to {width} x {height} pixels for you. Do you want me to do this for you?",
                             image=self.image.as_ref().unwrap().display(),
@@ -157,43 +168,30 @@ impl State {
     }
 }
 
-fn main() -> rustyline::Result<()> {
+fn main() -> yatima_rustyline::Result<()> {
 
     let mut state = State {
         image: None,
         scenario: None,
         native_image_width: None,
         native_image_height: None,
-        is_upscaling: false,
+        final_width: None,
+        final_height: None,        
         dpi: None
-    };
+    };    
 
-    let mut context : Vec<String> = vec![];
+    let mut rl = yatima_rustyline::Editor::<()>::new()?;
 
-    // tools
-    // let tools = vec![
-    //     Tool::ImageSize(get_image_size),
-    //     Tool::AspectRatio(get_aspect_ratio),
-    //     Tool::DimensionToInches(dimension_to_inches),
-    //     Tool::ImageSize(get_image_size),
-    // ];
-    
-    // SET THE GOAL    
-    // SET THE CONTEXT    
-    // TOOL(S) GET CALLED BASED ON THE CONTEXT
+    let path = env::current_dir()?;    
 
-    let mut rl = DefaultEditor::new()?;
-    #[cfg(feature = "with-file-history")]
-    if rl.load_history("history.txt").is_err() {
-        println!("No previous history.");
-    }
     loop {
         let (text, handler) = state.handle();
         println!("{text}");
-        let readline = rl.readline(">> ");
+
+        let readline = rl.readline(">> ");        
+        
         match readline {
-            Ok(line) => {
-                rl.add_history_entry(line.as_str())?;
+            Ok(line) => {                
 
                 let result = handler(&mut state, &line);
                 
@@ -204,35 +202,12 @@ fn main() -> rustyline::Result<()> {
                     Err(e) => println!("{e}"),
                 }
             },
-            Err(ReadlineError::Interrupted) => {
-                println!("CTRL-C");
-                break
-            },
-            Err(ReadlineError::Eof) => {
-                println!("CTRL-D");
-                break
-            },
-            Err(err) => {
-                println!("Error: {:?}", err);
-                break
-            }
+            Err(_) => {
+                break;
+            }          
         }
-
-        // AWAIT CONTEXT CHANGE
-        // loop {        
-        // DETERMINE NEEDED TOOL USE
-        // USE TOOL
-        // OUTPUT
-        // UPDATE CONTEXT
-        // END LOOP IF NECESSARY
-        // }
-        //
-        // OUTPUT
-        
     }
 
-    #[cfg(feature = "with-file-history")]
-    let _ = rl.save_history("history.txt");
     Ok(())
 
 }

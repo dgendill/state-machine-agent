@@ -6,11 +6,10 @@ edition = "2024"
 [dependencies]
 image = "0.25.9"
 regex = "1.12.2"
-rustyline = { version = "17.0.2", features = ["with-file-history"] }
+yatima-rustyline = "0.2.0"
 
 [features]
-default = ["with-file-history"]
-with-file-history = ["rustyline/with-file-history"]
+default = []
 
 [lib]
 name = "dimension_parser"
